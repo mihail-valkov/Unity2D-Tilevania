@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -25,22 +26,17 @@ public class PlayerMovement : MonoBehaviour
     }
     void Update()
     {
-        isGrounded = Mathf.Abs(rb.velocity.y) < Mathf.Epsilon;
+        isGrounded = Mathf.Abs(rb.velocity.y) < 0.2f;
 
         Run();
-        Jump();
     }
 
     private void Jump()
     {
-        //jump if moveInput.y is greater than 0
-        if (moveInput.y > 0)
+        //check if the player is grounded
+        if (isGrounded)
         {
-            //check if the player is grounded
-            if (isGrounded)
-            {
-                rb.AddForce(Vector2.up * jumpVelocity, ForceMode2D.Impulse);
-            }
+            rb.AddForce(Vector2.up * jumpVelocity, ForceMode2D.Impulse);
         }
     }
 
@@ -78,5 +74,13 @@ public class PlayerMovement : MonoBehaviour
     void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
+    }
+
+    void OnJump(InputValue value)
+    {
+        if (value.isPressed)
+        {
+            Jump();
+        }
     }
 }
