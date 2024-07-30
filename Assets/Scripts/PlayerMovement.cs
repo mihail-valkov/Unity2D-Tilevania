@@ -8,14 +8,20 @@ using UnityEngine.InputSystem.Controls;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] float jumpVelocity = 8f;
-    [SerializeField] float runSpeed = 8f;
+    [SerializeField] float jumpVelocity = 12f;
+    [SerializeField] float runSpeed = 10f;
+    [SerializeField] float climbSpeed = 5f;
     [SerializeField] float airControlFactor = 0.5f;
 
     Vector2 moveInput;
     Animator animator;
     Rigidbody2D rb;
-    bool isGrounded;
+    float gravityScaleCache;
+
+    Collider2D playerCollider;
+    private bool isClimbing;
+    private float originalAnimatorSpeed;
+
 
     // Update is called once per frame
 
@@ -23,16 +29,51 @@ public class PlayerMovement : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
+        playerCollider = GetComponent<Collider2D>();
     }
+
+    void Start()
+    {
+        gravityScaleCache = rb.gravityScale;
+    }
+
     void Update()
     {
-        isGrounded = Mathf.Abs(rb.velocity.y) < 0.2f;
-
+        Climb();
         Run();
+    }
+
+    private void Climb()
+    {
+        if (playerCollider.IsTouchingLayers(LayerMask.GetMask("Ladders")))
+        {
+            isClimbing = true;
+            rb.gravityScale = 0;
+            Vector2 climbVelocity = new Vector2(rb.velocity.x, moveInput.y * climbSpeed);
+            rb.velocity = climbVelocity;
+            
+            animator.SetBool("IsClimbing", true);
+            if (MathF.Abs(moveInput.y) < Mathf.Epsilon) 
+            {
+                PauseAnimation();
+            }
+            else
+            {
+                ResumeAnimation();
+            }
+        }
+        else if (isClimbing)
+        {
+            ResumeAnimation();
+            rb.gravityScale = gravityScaleCache;
+            animator.SetBool("IsClimbing", false);
+            isClimbing = false;
+        }
     }
 
     private void Jump()
     {
+        bool isGrounded = IsGrounded();
         //check if the player is grounded
         if (isGrounded)
         {
@@ -42,15 +83,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void Run()
     {
-        //get player rigid body
+
         float horizontalInput = moveInput.x;
+
+        bool isGrounded = IsGrounded();
         if (!isGrounded)
         {
             horizontalInput *= airControlFactor;
         }
 
-        rb.velocity = new Vector2(horizontalInput * runSpeed, rb.velocity.y);
-
+        rb.AddForce(new Vector2(horizontalInput * runSpeed - rb.velocity.x, 0), ForceMode2D.Impulse); 
+        //velocity = new Vector2(horizontalInput * runSpeed, rb.velocity.y);
 
         //change the animation param
         //check if the velocity is within epsylon
@@ -71,6 +114,29 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // Method to pause the animation
+    public void PauseAnimation()
+    {
+        // Store the original speed before pausing
+        if (animator.speed == 0)
+            return;
+
+        originalAnimatorSpeed = animator.speed;
+        animator.speed = 0;
+    }
+
+    // Method to resume the animation
+    public void ResumeAnimation()
+    {
+        // Restore the original speed
+        animator.speed = originalAnimatorSpeed;
+    }
+
+    private bool IsGrounded()
+    {
+        return playerCollider.IsTouchingLayers(LayerMask.GetMask("Ground"));
+    }
+
     void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
@@ -83,4 +149,6 @@ public class PlayerMovement : MonoBehaviour
             Jump();
         }
     }
+
+
 }
