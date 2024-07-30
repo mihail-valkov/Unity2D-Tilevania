@@ -18,7 +18,8 @@ public class PlayerMovement : MonoBehaviour
     Rigidbody2D rb;
     float gravityScaleCache;
 
-    Collider2D playerCollider;
+    BoxCollider2D playerBottomCollider;
+    CapsuleCollider2D playerCollider;
     private bool isClimbing;
     private float originalAnimatorSpeed;
 
@@ -29,7 +30,8 @@ public class PlayerMovement : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
-        playerCollider = GetComponent<Collider2D>();
+        playerBottomCollider = GetComponent<BoxCollider2D>();
+        playerCollider = GetComponent<CapsuleCollider2D>();
     }
 
     void Start()
@@ -49,11 +51,11 @@ public class PlayerMovement : MonoBehaviour
         {
             isClimbing = true;
             rb.gravityScale = 0;
-            Vector2 climbVelocity = new Vector2(rb.velocity.x, moveInput.y * climbSpeed);
+            Vector2 climbVelocity = new Vector2(moveInput.x * climbSpeed, moveInput.y * climbSpeed);
             rb.velocity = climbVelocity;
             
             animator.SetBool("IsClimbing", true);
-            if (MathF.Abs(moveInput.y) < Mathf.Epsilon) 
+            if (MathF.Abs(moveInput.y) < Mathf.Epsilon && MathF.Abs(moveInput.x) < Mathf.Epsilon) 
             {
                 PauseAnimation();
             }
@@ -84,16 +86,37 @@ public class PlayerMovement : MonoBehaviour
     private void Run()
     {
 
-        float horizontalInput = moveInput.x;
-
-        bool isGrounded = IsGrounded();
-        if (!isGrounded)
+        if (isClimbing)
         {
-            horizontalInput *= airControlFactor;
+            animator.SetBool("IsRunning", false);
+            return;
         }
 
-        rb.AddForce(new Vector2(horizontalInput * runSpeed - rb.velocity.x, 0), ForceMode2D.Impulse); 
-        //velocity = new Vector2(horizontalInput * runSpeed, rb.velocity.y);
+        float horizontalInput = moveInput.x;
+        bool isGrounded = IsGrounded();
+
+        if (!isGrounded)
+        {
+            //appy air control factor depending on air drag
+            horizontalInput *= airControlFactor;
+
+            if (horizontalInput > 0f)
+            {
+                rb.velocity = new Vector2(MathF.Max(rb.velocity.x, horizontalInput * runSpeed), rb.velocity.y);
+            }
+            else if (horizontalInput < 0f)
+            {
+                rb.velocity = new Vector2(MathF.Min(rb.velocity.x, horizontalInput * runSpeed), rb.velocity.y);
+            }
+            else
+            {
+                rb.velocity = new Vector2(rb.velocity.x * 0.9f, rb.velocity.y);
+            }
+        }
+        else
+        {
+            rb.velocity = new Vector2(horizontalInput * runSpeed, rb.velocity.y);
+        }
 
         //change the animation param
         //check if the velocity is within epsylon
@@ -128,13 +151,15 @@ public class PlayerMovement : MonoBehaviour
     // Method to resume the animation
     public void ResumeAnimation()
     {
+        if (originalAnimatorSpeed == 0)
+            return;
         // Restore the original speed
         animator.speed = originalAnimatorSpeed;
     }
 
     private bool IsGrounded()
     {
-        return playerCollider.IsTouchingLayers(LayerMask.GetMask("Ground"));
+        return playerBottomCollider.IsTouchingLayers(LayerMask.GetMask("Ground"));
     }
 
     void OnMove(InputValue value)
