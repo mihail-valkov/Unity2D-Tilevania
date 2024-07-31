@@ -2,12 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [SerializeField] Vector2 deathKickVelocity =  new Vector2(2f, 10f);
     [SerializeField] float jumpVelocity = 12f;
     [SerializeField] float runSpeed = 10f;
     [SerializeField] float climbSpeed = 5f;
@@ -18,10 +21,11 @@ public class PlayerMovement : MonoBehaviour
     Rigidbody2D rb;
     float gravityScaleCache;
 
-    BoxCollider2D playerBottomCollider;
-    CapsuleCollider2D playerCollider;
+    BoxCollider2D playerFeetCollider;
+    CapsuleCollider2D playerBodyCollider;
     private bool isClimbing;
     private float originalAnimatorSpeed;
+    bool isAlive = true;
 
 
     // Update is called once per frame
@@ -30,24 +34,28 @@ public class PlayerMovement : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
-        playerBottomCollider = GetComponent<BoxCollider2D>();
-        playerCollider = GetComponent<CapsuleCollider2D>();
+        playerFeetCollider = GetComponent<BoxCollider2D>();
+        playerBodyCollider = GetComponent<CapsuleCollider2D>();
     }
 
     void Start()
     {
+        isAlive = true;
         gravityScaleCache = rb.gravityScale;
     }
 
     void Update()
     {
+        if (!isAlive)
+            return;
+
         Climb();
         Run();
     }
 
     private void Climb()
     {
-        if (playerCollider.IsTouchingLayers(LayerMask.GetMask("Ladders")))
+        if (playerFeetCollider.IsTouchingLayers(LayerMask.GetMask("Ladders")))
         {
             isClimbing = true;
             rb.gravityScale = 0;
@@ -75,6 +83,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {
+        if (!isAlive)
+            return;
+        
         bool isGrounded = IsGrounded();
         //check if the player is grounded
         if (isGrounded)
@@ -159,7 +170,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        return playerBottomCollider.IsTouchingLayers(LayerMask.GetMask("Ground"));
+        return playerFeetCollider.IsTouchingLayers(LayerMask.GetMask("Ground"));
     }
 
     void OnMove(InputValue value)
@@ -174,6 +185,34 @@ public class PlayerMovement : MonoBehaviour
             Jump();
         }
     }
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        //if the walker collides with the wall, flip the sprite
+        //check only if the boxCollider has hit the wall
 
+        if (playerBodyCollider.IsTouching(collision.collider) && collision.gameObject.tag == "Enemy")
+        {
+            Die();
 
+        }
+    }
+    private void Die()
+    {
+        isAlive = false;
+        animator.SetTrigger("IsDead");
+
+        //Flip the player a bit in the air and then disable the colliders and camera follow
+        rb.velocity = deathKickVelocity;
+        playerBodyCollider.enabled = false;
+        playerFeetCollider.enabled = false;
+
+        //wait for 3 seconds and restart the level
+        StartCoroutine(RestartLevel());
+    }
+
+    IEnumerator RestartLevel()
+    {
+        yield return new WaitForSeconds(3);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 }
