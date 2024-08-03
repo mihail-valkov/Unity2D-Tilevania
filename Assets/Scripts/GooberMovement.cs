@@ -2,16 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GooberMovement : MonoBehaviour
+public class GooberMovement : BaseEnemy
 {
-    [SerializeField] float moveSpeed = 2.5f;
-    [SerializeField] float jumpIntervalSeconds = 2f;
+    [SerializeField] private float moveSpeed = 2.5f;
+    [SerializeField] private float jumpIntervalSeconds = 2f;
+    private float prevJumpTime = 0f;
+    private float randomJumpTimeOffset;
+    private Rigidbody2D rb;
 
-    float prevJumpTime = 0f;
-    float randomJumpTimeOffset;
-    Rigidbody2D rb;
-
-    void Awake()
+    private void Awake()
     {
         prevJumpTime = Random.Range(0f, jumpIntervalSeconds);
         //find the rigid body 2d
@@ -19,8 +18,11 @@ public class GooberMovement : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
+        if (IsDead)
+            return;
+
         //jump every 3 seconds towards the player
         if (Time.time - prevJumpTime > jumpIntervalSeconds)
         {

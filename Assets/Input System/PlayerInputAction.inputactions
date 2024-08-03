@@ -1,5 +1,5 @@
 {
-    "name": "Unity2D-Tilevania",
+    "name": "PlayerInputAction",
     "maps": [
         {
             "name": "Player",
@@ -259,6 +259,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
+                    "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e8616a62-d6ed-4703-8868-0659ad17dbed",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
                     "action": "Fire",
                     "isComposite": false,
                     "isPartOfComposite": false

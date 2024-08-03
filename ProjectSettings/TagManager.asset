@@ -19,9 +19,9 @@ TagManager:
   - Player
   - Bouncing
   - Enemies
-  - 
-  - 
-  - 
+  - Hazards
+  - Bullets
+  - Coins
   - 
   - 
   - 
@@ -54,6 +54,9 @@ TagManager:
     locked: 0
   - name: Ladders
     uniqueID: 3201531175
+    locked: 0
+  - name: Hazards
+    uniqueID: 2648048589
     locked: 0
   - name: Enemies
     uniqueID: 920281735
